@@ -1,0 +1,139 @@
+import QtQuick 2.12
+import QtQuick.Window 2.12
+import QtWebEngine 1.1
+import QtWebChannel 1.0
+import QtQuick.Controls 2.15
+import "wtools/js/conditions.js" as Conditions
+import "wtools/js/persionCalander.js" as FarsiCalander
+Window {
+    visible: true
+    width: Screen.width
+    height: Screen.height
+    visibility: Window.FullScreen
+    property string weatherApiKey: "Replace the weatherapi.com API key here!"
+    property string cityName: "tehran" //name city format etc: "wellington" OR can be lat and lon etc: "39.02,42.6" note that must be decimal not int OR can be ipv4 address etc: "147.135.78.94"
+    property int weatherInex:0
+    property string weatherDegeres:"-"
+    property string weatherDate:"-"
+    property bool nightTheme:false
+    property bool canUpdateWeather: false
+    property bool weatherUpdated: false
+    property int delayUpdateLoop: 5 //unit is Minutes
+    property int delayCheckingUpdate: 10 //unit is Secounds
+
+    QtObject {
+        id: channelObj
+        // ID, under which this object will be known at WebEngineView side
+        WebChannel.id: "backend"
+        signal updateWeather (var w_index,var w_degres,var w_date,var w_isNight,var w_txt);
+        function logFromHtml(dataLog) {
+            console.log(dataLog);
+            switch(dataLog){
+            case "window loaded":
+                htmlLoaded();
+                break
+            default:
+                console.log("debug from html/js:"+dataLog)
+            }
+            //            return "call back from qml to html/js: hello html (:";
+        }
+    }
+    WebEngineView {
+        //        width: 427
+        //        height: 308
+        id:weatherWebview
+        anchors.fill: parent
+        url: "wtools/index.html"  /*if its on local host: "file:///home/pi/weatherWidget/index.html"*/
+        settings.pluginsEnabled: true
+        webChannel: weatherChannel
+        onLoadingChanged: {
+            if (loadRequest.errorString)
+            {console.error("cant load webEngine Page with\n Err msg:"+loadRequest.errorString) }
+        }
+    }
+    WebChannel {
+        id: weatherChannel
+        registeredObjects: [channelObj]
+    }
+    //manual change weather by button (test purposes)
+    /*    Button{
+        id:changeWeatherBtn
+        text: "change Weather"
+        anchors.bottom: weatherWebview.bottom
+        anchors.horizontalCenter: weatherWebview.horizontalCenter
+        width: 200
+        height: 100
+        anchors.bottomMargin: 250
+        onClicked: {
+            if(weatherInex>=5){
+            weatherInex=0;
+            }else{
+                weatherInex++;
+            }
+//            channelObj.updateWeather(weatherInex,"27",FarsiCalander.getPersianDate(),false,"آفتابی");
+        }
+    }
+    */
+    Timer{
+        id:updateWeatherTimer
+        interval: delayUpdateLoop*60000
+        repeat: true
+        running: canUpdateWeather
+        onTriggered: {
+            console.log("updating weather...")
+            weatherUpdated=false
+            checkUpdatedTimer.stop()
+            checkUpdatedTimer.start()
+            getWeather(cityName)
+
+        }
+    }
+    Timer{
+        id:checkUpdatedTimer
+        interval: delayCheckingUpdate*1000
+        repeat: true
+        running: false
+        onTriggered: {
+            if(!weatherUpdated){
+                console.log("cant update weather... trying again..")
+                getWeather(cityName)
+            }
+        }
+    }
+    function htmlLoaded(){
+        weatherUpdated=false
+        checkUpdatedTimer.stop()
+        checkUpdatedTimer.start()
+        getWeather(cityName)
+    }
+    function getWeather(city){
+        var http = new XMLHttpRequest()
+        var url = "http://api.weatherapi.com/v1/current.json?key="+weatherApiKey+"&q="+city;
+        http.open("POST", url, true);
+        http.setRequestHeader("Content-type", "application/json;charset=UTF-8");
+        http.setRequestHeader("Connection", "close");
+        http.onreadystatechange = function() { // Call a function when the state changes.
+            if (http.readyState === http.DONE) {
+                if (http.status === 200) {
+                    if(JSON.stringify(http.responseText).indexOf("location")>-1){
+                        var _response=JSON.parse(http.responseText);
+                        Conditions.getWeatherStatus(_response.current.condition.code,_response.current.temp_c.toString(),FarsiCalander.getPersianDate(),_response.current.is_day==1?true:false,_response.current.wind_kph);
+                        console.log("weather Updated!");
+                        weatherUpdated=true
+                        checkUpdatedTimer.stop()
+                        canUpdateWeather=true
+                    }else{
+                        console.log("cant get weather statistics normal Form.\nError:"+http.responseText)
+                        weatherUpdated=false
+                        canUpdateWeather=false
+                    }
+                } else {
+                    console.log("error on get weather statistics \n err Code: " + http.status + "\n err string:"+http.responseText)
+                    weatherUpdated=false
+                    canUpdateWeather=false
+                }
+            }
+        }
+        http.send();
+    }
+}

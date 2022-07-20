@@ -1,0 +1,20 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>wtools/index.html</file>
+        <file>wtools/fonts/MAINFONT.TTF</file>
+        <file>wtools/fonts/S6u9w4BMUTPHh7USSwiPHA.ttf</file>
+        <file>wtools/fonts/weathericons-regular-webfont.ttf</file>
+        <file>wtools/fonts/weathericons-regular-webfont.woff</file>
+        <file>wtools/fonts/weathericons-regular-webfont.woff2</file>
+        <file>wtools/css/font.css</file>
+        <file>wtools/css/style.css</file>
+        <file>wtools/css/weather-icons.min.css</file>
+        <file>wtools/js/conditions.js</file>
+        <file>wtools/js/jquery-2.2.4.min.js</file>
+        <file>wtools/js/persionCalander.js</file>
+        <file>wtools/js/script.js</file>
+        <file>wtools/js/snap.svg-min.js</file>
+        <file>wtools/js/TweenMax.min.js</file>
+    </qresource>
+</RCC>
